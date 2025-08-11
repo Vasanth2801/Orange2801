@@ -4,37 +4,33 @@ using TMPro;
 
 public class Card : MonoBehaviour
 {
-    [Header("UI References")]
-    public GameObject front;               // panel that shows the letter
-    public GameObject back;                // panel that shows face-down
-    public TextMeshProUGUI letterText;     // TMP text inside front (shows letter)
+    public GameObject front;               // assign the Front panel (contains TMP)
+    public GameObject back;                // assign the Back panel (face-down)
+    public TextMeshProUGUI letterText;     // assign the TMP text inside front
 
     [HideInInspector] public string letter;
     [HideInInspector] public bool isRevealed = false;
     [HideInInspector] public bool isMatched = false;
 
-    private Button button;
+    Button btn;
 
-    private void Awake()
+    void Awake()
     {
-        // wire button click safely (removes other listeners to avoid dupes)
-        button = GetComponent<Button>();
-        if (button != null)
+        btn = GetComponent<Button>();
+        if (btn != null)
         {
-            button.onClick.RemoveAllListeners();
-            button.onClick.AddListener(OnCardClicked);
+            btn.onClick.RemoveAllListeners();
+            btn.onClick.AddListener(OnCardClicked);
         }
 
-        // try auto-assign TMP if not set
         if (letterText == null && front != null)
             letterText = front.GetComponentInChildren<TextMeshProUGUI>();
     }
 
-    public void SetLetter(string newLetter)
+    public void SetLetter(string s)
     {
-        letter = newLetter;
-        if (letterText != null)
-            letterText.text = letter;
+        letter = s;
+        if (letterText != null) letterText.text = s;
     }
 
     public void OnCardClicked()
@@ -53,7 +49,7 @@ public class Card : MonoBehaviour
 
     public void HideInstant()
     {
-        if (isMatched) return; // matched cards stay revealed
+        if (isMatched) return; // matched stays visible
         isRevealed = false;
         if (front != null) front.SetActive(false);
         if (back != null) back.SetActive(true);
@@ -62,7 +58,7 @@ public class Card : MonoBehaviour
     public void SetMatched()
     {
         isMatched = true;
-        // disable button so it can't be clicked
-        if (button != null) button.interactable = false;
+        // optionally disable button so it can't be clicked
+        if (btn != null) btn.interactable = false;
     }
 }

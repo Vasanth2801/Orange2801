@@ -1,13 +1,17 @@
-using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
+using TMPro;
+using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class GameManager : MonoBehaviour
 {
     public static GameManager Instance;
 
     [Header("Scene References")]
-    public Transform cardContainer;        // drag the CardContainer Panel here
+    public Transform cardContainer;    // drag the CardContainer (panel) here
+    public TMP_Text scoreText;         // drag ScoreText (TMP) here
+    public GameObject winScreen;       // drag WinScreen panel here
 
     [Header("Gameplay")]
     public float mismatchDelay = 0.8f;
@@ -15,6 +19,7 @@ public class GameManager : MonoBehaviour
     List<Card> cards = new List<Card>();
     Card firstCard = null;
     Card secondCard = null;
+    int score = 0;
 
     void Awake()
     {
@@ -23,29 +28,31 @@ public class GameManager : MonoBehaviour
 
     void Start()
     {
+        // collect card instances that are children of cardContainer
         if (cardContainer == null)
         {
             Debug.LogError("GameManager: cardContainer not assigned.");
             return;
         }
 
-        // collect cards (instances) under the container
-        Card[] arr = cardContainer.GetComponentsInChildren<Card>();
-        cards = new List<Card>(arr);
+        cards.Clear();
+        foreach (Transform t in cardContainer)
+        {
+            Card c = t.GetComponent<Card>();
+            if (c != null) cards.Add(c);
+        }
 
         if (cards.Count == 0)
         {
-            Debug.LogWarning("No card instances found under cardContainer.");
-            return;
-        }
-
-        if (cards.Count % 2 != 0)
-        {
-            Debug.LogWarning("Odd number of cards found. Make card count even for pairs.");
+            Debug.LogWarning("GameManager: no cards found under cardContainer.");
         }
 
         AssignRandomLetters();
         HideAllCards();
+
+        UpdateScoreUI();
+
+        if (winScreen != null) winScreen.SetActive(false);
     }
 
     void AssignRandomLetters()
@@ -55,13 +62,13 @@ public class GameManager : MonoBehaviour
 
         for (int i = 0; i < pairCount; i++)
         {
-            char ch = (char)('A' + (i % 26)); // wraps after Z back to A if needed
+            char ch = (char)('A' + (i % 26));
             string s = ch.ToString();
             letters.Add(s);
             letters.Add(s);
         }
 
-        // Fisher-Yates shuffle
+        // simple Fisher-Yates shuffle
         for (int i = letters.Count - 1; i > 0; i--)
         {
             int j = Random.Range(0, i + 1);
@@ -83,18 +90,18 @@ public class GameManager : MonoBehaviour
         foreach (var c in cards) c.HideInstant();
     }
 
-    public void OnCardClicked(Card clicked)
+    public void OnCardClicked(Card card)
     {
         if (firstCard == null)
         {
-            firstCard = clicked;
+            firstCard = card;
             firstCard.RevealInstant();
             return;
         }
 
-        if (secondCard == null && clicked != firstCard)
+        if (secondCard == null && card != firstCard)
         {
-            secondCard = clicked;
+            secondCard = card;
             secondCard.RevealInstant();
             StartCoroutine(CheckMatch());
         }
@@ -102,7 +109,7 @@ public class GameManager : MonoBehaviour
 
     IEnumerator CheckMatch()
     {
-        // allow player to see the second card
+        // allow the player to see the second card
         yield return new WaitForSeconds(mismatchDelay);
 
         if (firstCard == null || secondCard == null)
@@ -113,13 +120,33 @@ public class GameManager : MonoBehaviour
 
         if (firstCard.letter == secondCard.letter)
         {
+            // correct
             firstCard.SetMatched();
             secondCard.SetMatched();
+
+            score += 10;
         }
         else
         {
+            // wrong
             firstCard.HideInstant();
             secondCard.HideInstant();
+
+            score = Mathf.Max(0, score - 2);
+        }
+
+        UpdateScoreUI();
+
+        // check win: all cards matched
+        bool allMatched = true;
+        foreach (var c in cards)
+        {
+            if (!c.isMatched) { allMatched = false; break; }
+        }
+
+        if (allMatched)
+        {
+            if (winScreen != null) winScreen.SetActive(true);
         }
 
         ResetSelection();
@@ -129,5 +156,38 @@ public class GameManager : MonoBehaviour
     {
         firstCard = null;
         secondCard = null;
+    }
+
+    void UpdateScoreUI()
+    {
+        if (scoreText != null) scoreText.text = "Score: " + score;
+    }
+
+    // optional helper methods for buttons
+    public void RestartLevel()
+    {
+        UnityEngine.SceneManagement.SceneManager.LoadScene(UnityEngine.SceneManagement.SceneManager.GetActiveScene().name);
+    }
+
+    public void BackToMenu()
+    {
+        UnityEngine.SceneManagement.SceneManager.LoadScene("MenuScene");
+    }
+
+
+    public void SaveGame()
+    {
+        PlayerPrefs.SetString("SavedLevel", SceneManager.GetActiveScene().name);
+        PlayerPrefs.SetInt("SavedScore", score);
+        PlayerPrefs.Save();
+    }
+
+    public void LoadGame()
+    {
+        if (PlayerPrefs.HasKey("SavedLevel"))
+        {
+            string savedLevel = PlayerPrefs.GetString("SavedLevel");
+            SceneManager.LoadScene(savedLevel);
+        }
     }
 }
