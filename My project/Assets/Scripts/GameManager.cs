@@ -68,7 +68,7 @@ public class GameManager : MonoBehaviour
             letters.Add(s);
         }
 
-        // simple Fisher-Yates shuffle
+        // simple shuffle
         for (int i = letters.Count - 1; i > 0; i--)
         {
             int j = Random.Range(0, i + 1);
@@ -163,7 +163,7 @@ public class GameManager : MonoBehaviour
         if (scoreText != null) scoreText.text = "Score: " + score;
     }
 
-    // optional helper methods for buttons
+    
     public void RestartLevel()
     {
         UnityEngine.SceneManagement.SceneManager.LoadScene(UnityEngine.SceneManagement.SceneManager.GetActiveScene().name);

@@ -58,7 +58,6 @@ public class Card : MonoBehaviour
     public void SetMatched()
     {
         isMatched = true;
-        // optionally disable button so it can't be clicked
         if (btn != null) btn.interactable = false;
     }
 }
